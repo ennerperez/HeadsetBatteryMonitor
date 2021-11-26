@@ -40,7 +40,7 @@ public static class Program
 
         Services.AddSingleton(Configuration);
         Services.AddSingleton<Context>();
-        Services.AddSingleton<BateryService>();
+        Services.AddSingleton<BatteryService>();
 
         Services.AddLogging(builder =>
         {

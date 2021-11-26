@@ -19,11 +19,11 @@ namespace HeadsetBatteryMonitor
 
         private NotifyIcon trayIcon;
 
-        private readonly BateryService _bateryService;
+        private readonly BatteryService _batteryService;
         private readonly Device _device;
         private readonly ResourceManager _strings;
 
-        public Context(BateryService bateryService, IConfiguration configuration)
+        public Context(BatteryService batteryService, IConfiguration configuration)
         {
             // Allow for multiple runs but only try and get the mutex once
             if (_mutexApplication == null)
@@ -49,9 +49,9 @@ namespace HeadsetBatteryMonitor
             _device = new Device();
             configuration.Bind("Device", _device);
 
-            _bateryService = bateryService;
-            Task.Run(() => { bateryService.StartAsync(_device); });
-            bateryService.ValueChanged += BateryServiceOnValueChanged;
+            _batteryService = batteryService;
+            Task.Run(() => { batteryService.StartAsync(_device); });
+            batteryService.ValueChanged += BatteryServiceOnValueChanged;
         }
 
         private void AboutCommand(object? sender, EventArgs e)
@@ -63,10 +63,10 @@ namespace HeadsetBatteryMonitor
             form.ShowDialog();
         }
 
-        private void BateryServiceOnValueChanged(object? sender, EventArgs e)
+        private void BatteryServiceOnValueChanged(object? sender, EventArgs e)
         {
             var color = "#fff";
-            var value = _bateryService.Value;
+            var value = _batteryService.Value;
             if (value > _device.Success || value == -2) color = "#198754";
             else if (value > _device.Warning) color = "#FFC107";
             else if (value <= _device.Danger || value == -1) color = "#DC3545";

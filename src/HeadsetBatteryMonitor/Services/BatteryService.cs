@@ -7,11 +7,11 @@ using Microsoft.Extensions.Logging;
 
 namespace HeadsetBatteryMonitor.Services
 {
-    public class BateryService
+    public class BatteryService
     {
         private readonly ILogger _logger;
 
-        public BateryService(ILoggerFactory loggerFactory, IConfiguration configuration)
+        public BatteryService(ILoggerFactory loggerFactory, IConfiguration configuration)
         {
             _logger = loggerFactory.CreateLogger(GetType());
             Debug = configuration.GetValue<bool>("Settings:Debug");
