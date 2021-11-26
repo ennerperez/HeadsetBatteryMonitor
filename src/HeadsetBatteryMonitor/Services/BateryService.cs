@@ -2,11 +2,23 @@
 using System.Reflection;
 using HeadsetBatteryMonitor.Models;
 using HidApiAdapter;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace HeadsetBatteryMonitor.Services
 {
     public class BateryService
     {
+        private readonly ILogger _logger;
+
+        public BateryService(ILoggerFactory loggerFactory, IConfiguration configuration)
+        {
+            _logger = loggerFactory.CreateLogger(GetType());
+            Debug = configuration.GetValue<bool>("Settings:Debug");
+        }
+
+        public bool Debug { get; private set; }
+
         private const int VoidBatteryMicup = 128;
         private static byte[] _dataReq = {0xC9, 0x64};
 
@@ -68,6 +80,7 @@ namespace HeadsetBatteryMonitor.Services
         private void HandleReport(byte[]? data)
         {
             if (data == null) return;
+            if (Debug) _logger.LogDebug($"Battery report: {string.Join(", ", data)}");
             try
             {
                 // Charging
