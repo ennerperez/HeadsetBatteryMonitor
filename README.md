@@ -1,21 +1,17 @@
 ![logo](.editoricon.png)
-
 # Headset Battery Monitor
-
 ---------------------------------------
-
 See the [changelog](CHANGELOG.md) for changes.
 
 ## Roadmap
 
 - [x] Tray icon monitor
-- [x] System notifications
+- [ ] System notifications
 - [ ] Custom settings
 - [ ] Headset catalogs
 
 ## Table of contents
 
-- [Headset Battery Monitor](#headset-battery-monitor)
   - [Roadmap](#roadmap)
   - [Table of contents](#table-of-contents)
     - [What's included](#whats-included)
