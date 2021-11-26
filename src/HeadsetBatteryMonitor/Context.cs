@@ -69,7 +69,7 @@ namespace HeadsetBatteryMonitor
             var value = _bateryService.Value;
             if (value > _device.Success || value == -2) color = "#198754";
             else if (value > _device.Warning) color = "#FFC107";
-            else if (value > _device.Danger || value == -1) color = "#DC3545";
+            else if (value <= _device.Danger || value == -1) color = "#DC3545";
 
             uint dpiX, dpiY;
             int w = 16, h = 16;
