@@ -1,3 +1,5 @@
+using System;
+using System.Windows.Forms;
 using HeadsetBatteryMonitor.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

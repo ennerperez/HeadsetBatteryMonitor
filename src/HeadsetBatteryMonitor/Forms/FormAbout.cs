@@ -1,5 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Drawing;
+using System.Diagnostics;
 using System.Reflection;
+using System.Windows.Forms;
 
 namespace HeadsetBatteryMonitor.Forms
 {
@@ -24,7 +27,7 @@ namespace HeadsetBatteryMonitor.Forms
             richTextBoxLicense.Text = System.Text.Encoding.UTF8.GetString(Properties.Resources.LICENSE);
 
             linkLabelWeb.Text = GitHubInfo.Repo;
-            buttonUpdate.Visible = (GitHubInfo.LatestRelease != null && (GitHubInfo.LatestRelease.GetVersion() > ApplicationInfo.Version));
+            buttonUpdate.Visible = (GitHubInfo.Latest != null && (GitHubInfo.Latest.GetVersion() > ApplicationInfo.Version));
 
             pictureBoxIcon.Image = Icon?.ToBitmap();
         }
@@ -42,14 +45,14 @@ namespace HeadsetBatteryMonitor.Forms
 
         private void ButtonUpdate_Click(object sender, EventArgs e)
         {
-            var url = GitHubInfo.Repo;
-            DefaultBrowser.Open(url);
+            var url = GitHubInfo.Release;
+            if (!string.IsNullOrWhiteSpace(url)) DefaultBrowser.Open(url);
         }
 
         private async void FormAbout_Load(object sender, EventArgs e)
         {
-            if (GitHubInfo.LatestRelease == null) await GitHubInfo.GetLatestReleaseAsync();
-            buttonUpdate.Visible = (GitHubInfo.LatestRelease != null && (GitHubInfo.LatestRelease.GetVersion() > ApplicationInfo.Version));
+            if (GitHubInfo.Latest == null) await GitHubInfo.GetLatestReleaseAsync();
+            buttonUpdate.Visible = (GitHubInfo.Latest != null && (GitHubInfo.Latest.GetVersion() > ApplicationInfo.Version));
         }
     }
 }
