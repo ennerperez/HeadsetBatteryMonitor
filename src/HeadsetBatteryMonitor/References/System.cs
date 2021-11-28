@@ -4,16 +4,23 @@
 // Updated 2021-11-20
 // ----------------------------------------
 
+using System;
+using System.Collections.Generic;
 using GitHub;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 using HeadsetBatteryMonitor;
 
 namespace System
 {
-
     namespace Diagnostics
     {
         public static class DefaultBrowser
@@ -111,7 +118,7 @@ namespace System
                     return new Rectangle(0, 0, (maxx - minx), (maxy - miny));
                 }
             }
-            
+
             public static class ScreenExtensions
             {
                 public static void GetDpi(this Screen screen, DpiType dpiType, out uint dpiX, out uint dpiY)
@@ -136,7 +143,6 @@ namespace System
                 Angular = 1,
                 Raw = 2,
             }
-
         }
     }
 
@@ -203,10 +209,11 @@ namespace System
             public static string? Owner => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.Owner;
             public static string? Name => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.Repo;
             public static string? AssetName => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.AssetName;
+            public static string? Release => $"{Repo}/releases/latest";
 
-            public static Release? LatestRelease { get; set; }
+            public static Release? Latest { get; set; }
 
-            public static async Task<Release?> GetLatestReleaseAsync()
+            public static async Task GetLatestReleaseAsync()
             {
                 try
                 {
@@ -216,35 +223,34 @@ namespace System
                         client.DefaultRequestHeaders.Add("User-Agent", ApplicationInfo.Title);
                         var response = await client.GetAsync(url);
                         if (response.IsSuccessStatusCode)
-                            return JsonConvert.DeserializeObject<Release>(await response.Content.ReadAsStringAsync());
+                            Latest = JsonConvert.DeserializeObject<Release>(await response.Content.ReadAsStringAsync());
                     }
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine(ex.Message);
                 }
-                return null;
             }
 
             public static async Task CheckForUpdateAsync()
             {
                 try
                 {
-                    LatestRelease = await GetLatestReleaseAsync();
-                    if (ApplicationInfo.Version < LatestRelease.GetVersion())
+                    await GetLatestReleaseAsync();
+                    if (ApplicationInfo.Version < Latest.GetVersion())
                     {
                         var updateMessage = Messages.NewVersion;
-                        updateMessage = updateMessage.Replace("{VERSION}", LatestRelease.GetVersion()?.ToString());
-                        updateMessage = updateMessage.Replace("{CREATEDAT}", LatestRelease?.CreatedAt.UtcDateTime.ToShortDateString());
+                        updateMessage = updateMessage.Replace("{VERSION}", Latest.GetVersion()?.ToString());
+                        updateMessage = updateMessage.Replace("{CREATEDAT}", Latest?.CreatedAt.UtcDateTime.ToShortDateString());
                         if (MessageBox.Show(updateMessage, ApplicationInfo.Title, MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                         {
                             var assetName = AssetName;
                             if (string.IsNullOrEmpty(assetName)) assetName = $"{ApplicationInfo.Product}.zip";
-                            var assetUrl = LatestRelease?.Assets.FirstOrDefault(m => m.Name == assetName);
-                            var url = LatestRelease?.AssetsUrl;
+                            var assetUrl = Latest?.Assets.FirstOrDefault(m => m.Name == assetName);
+                            var url = Latest?.AssetsUrl;
                             if (assetUrl != null) url = assetUrl.BrowserDownloadUrl;
                             if (string.IsNullOrEmpty(url)) url = Repo;
-                            if (!string.IsNullOrEmpty(url)) Process.Start(url);
+                            if (!string.IsNullOrEmpty(url)) DefaultBrowser.Open(url);
                         }
                     }
                 }

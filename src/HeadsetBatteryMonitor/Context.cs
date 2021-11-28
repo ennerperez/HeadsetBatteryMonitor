@@ -1,5 +1,11 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Drawing;
+using System.IO;
+using System.Reflection;
 using System.Resources;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 using System.Xml;
 using HeadsetBatteryMonitor.Forms;
 using HeadsetBatteryMonitor.Models;
@@ -17,7 +23,7 @@ namespace HeadsetBatteryMonitor
         private bool _firstApplicationInstance;
         private Mutex _mutexApplication;
 
-        private NotifyIcon trayIcon;
+        public NotifyIcon TrayIcon;
 
         private readonly BatteryService _batteryService;
         private readonly Device _device;
@@ -32,19 +38,14 @@ namespace HeadsetBatteryMonitor
             if (!_firstApplicationInstance) ExitCommand(this, EventArgs.Empty);
 
             var appIcon = ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
-            trayIcon = new NotifyIcon()
-            {
-                Icon = appIcon,
-                Visible = true,
-                ContextMenuStrip = new ContextMenuStrip()
-            };
+            TrayIcon = new NotifyIcon() {Icon = appIcon, Visible = true, ContextMenuStrip = new ContextMenuStrip()};
 
             _strings = Messages.ResourceManager;
 
-            trayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("RunAtStart"), null, RegisterInStartupCommand) {CheckOnClick = true});
-            trayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("About"), null, AboutCommand));
-            trayIcon.ContextMenuStrip.Items.Add(new ToolStripSeparator());
-            trayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("Exit"), null, ExitCommand));
+            TrayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("RunAtStart"), null, RegisterInStartupCommand) {CheckOnClick = true});
+            TrayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("About"), null, AboutCommand));
+            TrayIcon.ContextMenuStrip.Items.Add(new ToolStripSeparator());
+            TrayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("Exit"), null, ExitCommand));
 
             _device = new Device();
             configuration.Bind("Device", _device);
@@ -52,14 +53,23 @@ namespace HeadsetBatteryMonitor
             _batteryService = batteryService;
             Task.Run(() => { batteryService.StartAsync(_device); });
             batteryService.ValueChanged += BatteryServiceOnValueChanged;
+
+            var newVersion = new Task(CheckForUpdateAsync);
+            newVersion.Start();
+        }
+
+        private async void CheckForUpdateAsync()
+        {
+#if DEBUG
+            await Task.Yield();
+#else
+            await GitHubInfo.CheckForUpdateAsync();
+#endif
         }
 
         private void AboutCommand(object? sender, EventArgs e)
         {
-            var form = new FormAbout()
-            {
-                StartPosition = FormStartPosition.CenterScreen
-            };
+            var form = new FormAbout() {StartPosition = FormStartPosition.CenterScreen};
             form.ShowDialog();
         }
 
@@ -67,8 +77,8 @@ namespace HeadsetBatteryMonitor
         {
             var color = "#fff";
             var value = _batteryService.Value;
-            if (value > _device.Success || value == -2) color = "#198754";
-            else if (value > _device.Warning) color = "#FFC107";
+            if (value >= _device.Success || value == -2) color = "#198754";
+            else if (value >= _device.Warning) color = "#FFC107";
             else if (value <= _device.Danger || value == -1) color = "#DC3545";
 
             uint dpiX, dpiY;
@@ -76,8 +86,8 @@ namespace HeadsetBatteryMonitor
             Screen.PrimaryScreen.GetDpi(DpiType.Angular, out dpiX, out dpiY);
             if (dpiY != 96)
             {
-                w = (int) (16.0 * (1 + dpiX / 96.0));
-                h = (int) (16.0 * (1 + dpiY / 96.0));
+                w = (int)(16.0 * (1 + dpiX / 96.0));
+                h = (int)(16.0 * (1 + dpiY / 96.0));
             }
 
             var svgContent = Properties.Resources.ICON;
@@ -87,18 +97,18 @@ namespace HeadsetBatteryMonitor
             var svgDocument = SvgDocument.Open(doc);
             svgDocument.Color = new SvgColourServer(ColorTranslator.FromHtml(color));
             var bitmap = svgDocument.Draw(w, h);
-            trayIcon.Icon = FromHandle(bitmap.GetHicon());
+            TrayIcon.Icon = FromHandle(bitmap.GetHicon());
 
             var text = $"{_device.Name} {value}%";
             if (value == -1) text = $"{_device.Name} ({_strings.GetString("Offline")})";
             else if (value == -2) text = $"{_device.Name} ({_strings.GetString("Charging")})";
 
-            trayIcon.Text = text;
+            TrayIcon.Text = text;
         }
 
         private void ExitCommand(object? sender, EventArgs e)
         {
-            trayIcon.Visible = false;
+            TrayIcon.Visible = false;
             _mutexApplication.Dispose();
             Application.Exit();
         }
