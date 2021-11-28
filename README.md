@@ -1,12 +1,14 @@
 ![logo](.editoricon.png)
+
 # Headset Battery Monitor
+[![Build status](https://ci.appveyor.com/api/projects/status/nldwjg74ng99ohis?svg=true)](https://ci.appveyor.com/project/ennerperez/headsetbatterymonitor)
 ---------------------------------------
 See the [changelog](CHANGELOG.md) for changes.
 
 ## Roadmap
 
-- [x] Tray icon monitor
-- [ ] System notifications
+- [x] Icon monitor
+- [ ] Notifications
 - [ ] Custom settings
 - [ ] Headset catalogs
 
