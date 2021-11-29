@@ -4,6 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.0.2]
 ### Fixed
+- Color settings
+- Run at startup detection
+### Changed
+- Battery level settings
+### Added
+- Colors at settings 
+
+## [1.0.2]
+### Fixed
 - Warning value validator
 - GitHub version checker
 - Version format
