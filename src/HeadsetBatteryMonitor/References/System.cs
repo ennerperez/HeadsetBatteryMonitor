@@ -25,7 +25,7 @@ namespace System
     {
         public static class DefaultBrowser
         {
-            public static void Open(string? url)
+            public static void Open(string url)
             {
                 try
                 {
@@ -73,7 +73,7 @@ namespace System
 
             internal static partial class FormHelper
             {
-                public static void ExtractResources(Image? image, string name)
+                public static void ExtractResources(Image image, string name)
                 {
                     if (image != null)
                     {
@@ -155,16 +155,16 @@ namespace System
             {
             }
 
-            public GitHubAttribute(string? owner, string? repo, string? assetName = "")
+            public GitHubAttribute(string owner, string repo, string assetName = "")
             {
                 Owner = owner;
                 Repo = repo;
                 AssetName = assetName;
             }
 
-            public string? Owner { get; private set; }
-            public string? Repo { get; private set; }
-            public string? AssetName { get; private set; }
+            public string Owner { get; private set; }
+            public string Repo { get; private set; }
+            public string AssetName { get; private set; }
 
             public override string ToString()
             {
@@ -176,18 +176,18 @@ namespace System
         {
             public static Assembly Assembly => Assembly.GetCallingAssembly();
 
-            public static Version? Version => Assembly.GetName().Version;
-            public static string? Title => Assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title;
-            public static string? Product => Assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product;
-            public static string? Description => Assembly.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description;
-            public static string? Copyright => Assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright;
-            public static string? Company => Assembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company;
+            public static Version Version => Assembly.GetName().Version;
+            public static string Title => Assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title;
+            public static string Product => Assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product;
+            public static string Description => Assembly.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description;
+            public static string Copyright => Assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright;
+            public static string Company => Assembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company;
 
-            public static string? Guid => Assembly.GetCustomAttribute<GuidAttribute>()?.Value;
+            public static string Guid => Assembly.GetCustomAttribute<GuidAttribute>()?.Value;
 
-            internal static Dictionary<string, string?> GetCommandLine()
+            internal static Dictionary<string, string> GetCommandLine()
             {
-                var commandArgs = new Dictionary<string, string?>();
+                var commandArgs = new Dictionary<string, string>();
 
                 var assembly = string.Format(@"""{0}"" ", Assembly.GetExecutingAssembly().Location);
                 var collection = Environment.CommandLine.Replace(assembly, "").Split(' ').Select(a => a.ToLower()).ToList();
@@ -205,13 +205,13 @@ namespace System
 
         internal static class GitHubInfo
         {
-            public static string? Repo => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.ToString();
-            public static string? Owner => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.Owner;
-            public static string? Name => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.Repo;
-            public static string? AssetName => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.AssetName;
-            public static string? Release => $"{Repo}/releases/latest";
+            public static string Repo => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.ToString();
+            public static string Owner => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.Owner;
+            public static string Name => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.Repo;
+            public static string AssetName => ApplicationInfo.Assembly.GetCustomAttribute<GitHubAttribute>()?.AssetName;
+            public static string Release => $"{Repo}/releases/latest";
 
-            public static Release? Latest { get; set; }
+            public static Release Latest { get; set; }
 
             public static async Task GetLatestReleaseAsync()
             {
@@ -260,7 +260,7 @@ namespace System
                 }
             }
 
-            public static Version? GetVersion(this Release? release)
+            public static Version GetVersion(this Release release)
             {
                 Version.TryParse(release?.TagName?.Replace("v", ""), out var result);
                 return result;
@@ -279,7 +279,7 @@ namespace GitHub
         }
 
         [JsonProperty("tarball_url")]
-        public string? TarballUrl { get; set; }
+        public string TarballUrl { get; set; }
 
         //[JsonProperty("author")]
         //public Author Author { get; set; }
@@ -297,34 +297,34 @@ namespace GitHub
         public bool Draft { get; set; }
 
         [JsonProperty("body")]
-        public string? Body { get; set; }
+        public string Body { get; set; }
 
         [JsonProperty("name")]
-        public string? Name { get; set; }
+        public string Name { get; set; }
 
         [JsonProperty("target_commitish")]
-        public string? TargetCommitish { get; set; }
+        public string TargetCommitish { get; set; }
 
         [JsonProperty("tag_name")]
-        public string? TagName { get; set; }
+        public string TagName { get; set; }
 
         [JsonProperty("id")]
         public int Id { get; set; }
 
         [JsonProperty("upload_url")]
-        public string? UploadUrl { get; set; }
+        public string UploadUrl { get; set; }
 
         [JsonProperty("assets_url")]
-        public string? AssetsUrl { get; set; }
+        public string AssetsUrl { get; set; }
 
         [JsonProperty("html_url")]
-        public string? HtmlUrl { get; set; }
+        public string HtmlUrl { get; set; }
 
         [JsonProperty("url")]
-        public string? Url { get; set; }
+        public string Url { get; set; }
 
         [JsonProperty("zipball_url")]
-        public string? ZipballUrl { get; set; }
+        public string ZipballUrl { get; set; }
 
         [JsonProperty("assets")]
         public ICollection<Asset> Assets { get; set; }
@@ -333,22 +333,22 @@ namespace GitHub
     internal class Asset
     {
         [JsonProperty("url")]
-        public string? Url { get; set; }
+        public string Url { get; set; }
 
         [JsonProperty("id")]
         public int Id { get; set; }
 
         [JsonProperty("name")]
-        public string? Name { get; set; }
+        public string Name { get; set; }
 
         [JsonProperty("label")]
-        public string? Label { get; set; }
+        public string Label { get; set; }
 
         [JsonProperty("state")]
-        public string? State { get; set; }
+        public string State { get; set; }
 
         [JsonProperty("content_type")]
-        public string? ContentType { get; set; }
+        public string ContentType { get; set; }
 
         [JsonProperty("size")]
         public int Size { get; set; }
@@ -363,7 +363,7 @@ namespace GitHub
         public DateTimeOffset UpdatedAt { get; set; }
 
         [JsonProperty("browser_download_url")]
-        public string? BrowserDownloadUrl { get; set; }
+        public string BrowserDownloadUrl { get; set; }
 
         //[JsonProperty("uploader")]
         //public Author Uploader { get; set; }

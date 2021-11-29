@@ -2,11 +2,23 @@
 {
     public class Device
     {
-        public string? Name { get; set; }
-        public string? VendorId { get; set; }
-        public string? ProductId { get; set; }
-        public decimal Success { get; set; }
-        public decimal Warning { get; set; }
-        public decimal Danger { get; set; }
+        public string Name { get; set; }
+        public string VendorId { get; set; }
+        public string ProductId { get; set; }
+        public Levels Levels { get; set; }
+    }
+
+    public class Levels
+    {
+        public Level High { get; set; }
+        public Level Normal { get; set; }
+        public Level Low { get; set; }
+        public Level Critical { get; set; }
+    }
+
+    public class Level
+    {
+        public decimal? Value { get; set; }
+        public string Color { get; set; }
     }
 }
