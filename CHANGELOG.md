@@ -2,7 +2,11 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.0.2]
+## [1.0.4]
+### Fixed
+- hidapi64.dll & hidapi32.dll is now included in the build.
+
+## [1.0.3]
 ### Fixed
 - Color settings
 - Run at startup detection
