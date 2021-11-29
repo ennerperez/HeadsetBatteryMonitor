@@ -74,11 +74,17 @@ namespace HeadsetBatteryMonitor
 
         private void BatteryServiceOnValueChanged(object sender, EventArgs e)
         {
-            var color = "#fff";
+            string color;
             var value = _batteryService.Value;
-            if (value >= _device.Success || value == -2) color = "#198754";
-            else if (value >= _device.Warning) color = "#FFC107";
-            else if (value <= _device.Danger || value == -1) color = "#DC3545";
+
+            if (value >= _device.Levels.High.Value || value == -2)
+                color = _device.Levels.High.Color;
+            else if (value >= _device.Levels.Normal.Value)
+                color = _device.Levels.Normal.Color;
+            else if ((value >= _device.Levels.Critical.Value && value <= _device.Levels.Low.Value) || value == -1)
+                color = _device.Levels.Low.Color;
+            else
+                color = _device.Levels.Critical.Color;
 
             uint dpiX, dpiY;
             int w = 16, h = 16;
