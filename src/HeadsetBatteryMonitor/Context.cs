@@ -20,7 +20,6 @@ namespace HeadsetBatteryMonitor
     public class Context : ApplicationContext
     {
         private const string MutexName = "HeadsetBatteryMonitor";
-        private bool _firstApplicationInstance;
         private Mutex _mutexApplication;
 
         public NotifyIcon TrayIcon;
@@ -32,17 +31,17 @@ namespace HeadsetBatteryMonitor
         public Context(BatteryService batteryService, IConfiguration configuration)
         {
             // Allow for multiple runs but only try and get the mutex once
-            if (_mutexApplication == null)
-                _mutexApplication = new Mutex(true, MutexName, out _firstApplicationInstance);
+            bool firstApplicationInstance;
+            _mutexApplication = new Mutex(true, MutexName, out firstApplicationInstance);
 
-            if (!_firstApplicationInstance) ExitCommand(this, EventArgs.Empty);
+            if (!firstApplicationInstance) ExitCommand(this, EventArgs.Empty);
 
             var appIcon = ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
             TrayIcon = new NotifyIcon() {Icon = appIcon, Visible = true, ContextMenuStrip = new ContextMenuStrip()};
 
             _strings = Messages.ResourceManager;
 
-            TrayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("RunAtStart"), null, RegisterInStartupCommand) {CheckOnClick = true});
+            TrayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("RunAtStart"), null, RegisterInStartupCommand) {CheckOnClick = true, Checked = RunInStartup});
             TrayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("About"), null, AboutCommand));
             TrayIcon.ContextMenuStrip.Items.Add(new ToolStripSeparator());
             TrayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("Exit"), null, ExitCommand));
@@ -67,13 +66,13 @@ namespace HeadsetBatteryMonitor
 #endif
         }
 
-        private void AboutCommand(object? sender, EventArgs e)
+        private void AboutCommand(object sender, EventArgs e)
         {
             var form = new FormAbout() {StartPosition = FormStartPosition.CenterScreen};
             form.ShowDialog();
         }
 
-        private void BatteryServiceOnValueChanged(object? sender, EventArgs e)
+        private void BatteryServiceOnValueChanged(object sender, EventArgs e)
         {
             var color = "#fff";
             var value = _batteryService.Value;
@@ -106,19 +105,19 @@ namespace HeadsetBatteryMonitor
             TrayIcon.Text = text;
         }
 
-        private void ExitCommand(object? sender, EventArgs e)
+        private void ExitCommand(object sender, EventArgs e)
         {
             TrayIcon.Visible = false;
             _mutexApplication.Dispose();
             Application.Exit();
         }
 
-        private void RegisterInStartupCommand(object? sender, EventArgs e)
+        private void RegisterInStartupCommand(object sender, EventArgs e)
         {
             RunInStartup = ((sender as ToolStripMenuItem)!).Checked;
         }
 
-        private RegistryKey? startUpRegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+        private RegistryKey startUpRegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
 
         public bool RunInStartup
         {

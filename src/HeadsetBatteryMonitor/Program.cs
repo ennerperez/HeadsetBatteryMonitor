@@ -13,13 +13,13 @@ public static class Program
 {
     #region IOC
 
-    public static ILogger? Logger { get; private set; }
-    public static ServiceCollection? Services { get; private set; }
-    public static ServiceProvider? Container { get; private set; }
+    public static ILogger Logger { get; private set; }
+    public static ServiceCollection Services { get; private set; }
+    public static ServiceProvider Container { get; private set; }
 
     #endregion
 
-    public static IConfiguration? Configuration { get; private set; }
+    public static IConfiguration Configuration { get; private set; }
 
     /// <summary>
     ///  The main entry point for the application.

@@ -26,18 +26,18 @@ namespace HeadsetBatteryMonitor.Services
         private const int VoidBatteryMicup = 128;
         private static byte[] _dataReq = {0xC9, 0x64};
 
-        public Device? Device { get; private set; }
+        public Device Device { get; private set; }
         public int Pid => int.Parse(Device?.ProductId ?? "0", NumberStyles.HexNumber);
         public int Vid => int.Parse(Device?.VendorId ?? "0", NumberStyles.HexNumber);
 
-        private int?[]? LastValues { get; set; }
+        private int?[] LastValues { get; set; }
 
         private const int FilterLength = 25;
 
-        private HidDevice? _device;
+        private HidDevice _device;
         private IntPtr _devPtr;
 
-        private HidDevice? GetHidDevice()
+        private HidDevice GetHidDevice()
         {
             var devices = HidDeviceManager.GetManager().SearchDevices(Vid, Pid);
             foreach (var dev in devices)
@@ -53,7 +53,7 @@ namespace HeadsetBatteryMonitor.Services
             return null;
         }
 
-        public Task<byte[]?> GetBatteryStatusViaHid()
+        public Task<byte[]> GetBatteryStatusViaHid()
         {
             return Task.Run(() =>
             {
@@ -81,7 +81,7 @@ namespace HeadsetBatteryMonitor.Services
             });
         }
 
-        private void HandleReport(byte[]? data)
+        private void HandleReport(byte[] data)
         {
             if (data == null) return;
             if (Debug) _logger.LogDebug($"Battery report: {string.Join(", ", data)}");
@@ -112,7 +112,7 @@ namespace HeadsetBatteryMonitor.Services
 
         private bool _running = true;
 
-        public async void StartAsync(Device? device)
+        public async void StartAsync(Device device)
         {
             Device = device;
             while (_running)
@@ -143,6 +143,6 @@ namespace HeadsetBatteryMonitor.Services
             }
         }
 
-        public event EventHandler? ValueChanged;
+        public event EventHandler ValueChanged;
     }
 }
