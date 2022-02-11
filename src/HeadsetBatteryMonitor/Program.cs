@@ -1,5 +1,5 @@
 using System;
-using System.Windows.Forms;
+using System.IO;
 using HeadsetBatteryMonitor.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,87 +7,97 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace HeadsetBatteryMonitor;
-
-public static class Program
+namespace HeadsetBatteryMonitor
 {
-    #region IOC
-
-    public static ILogger Logger { get; private set; }
-    public static ServiceCollection Services { get; private set; }
-    public static ServiceProvider Container { get; private set; }
-
-    #endregion
-
-    public static IConfiguration Configuration { get; private set; }
-
-    /// <summary>
-    ///  The main entry point for the application.
-    /// </summary>
-    [STAThread]
-    private static void Main()
+    public static class Program
     {
-        AppDomain.CurrentDomain.UnhandledException += UnhandledException;
-        
-        var args = Environment.GetCommandLineArgs();
-        Configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", false, true)
+        public static IServiceProvider ServiceProvider { get; set; }
+
+        public static IConfiguration Configuration { get; private set; }
+
+        /// <summary>
+        ///  The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        private static void Main()
+        {
+            AppDomain.CurrentDomain.UnhandledException += UnhandledException;
+            
+            var args = Environment.GetCommandLineArgs();
+            var config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", false, true)
 #if DEBUG
-            .AddJsonFile("appsettings.Development.json", true, true)
+                .AddJsonFile("appsettings.Development.json", true, true)
 #endif
-            .AddCommandLine(args)
-            .Build();
+                .AddEnvironmentVariables()
+                .AddCommandLine(args)
+                .Build();
 
-        Services = new ServiceCollection();
+            Configuration = config;
+            
+            ConfigureServices();
 
-        Services.AddSingleton(Configuration);
-        Services.AddSingleton<Context>();
-        Services.AddSingleton<BatteryService>();
+            ILogger logger = null;
+            var factory = ServiceProvider.GetService<ILoggerFactory>();
+            if (factory != null) logger = factory.CreateLogger(typeof(Program));
 
-        Services.AddLogging(builder =>
-        {
-            builder.SetMinimumLevel(LogLevel.Information);
-            builder.AddSerilog();
-        }).AddOptions();
-        
-        //Initialize Logger
-        Log.Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(Configuration)
-            .CreateLogger();
-
-        Container = Services.BuildServiceProvider();
-        var factory = Container.GetService<ILoggerFactory>();
-        if (factory != null) Logger = factory.CreateLogger(typeof(Program));
-
-        var context = Container.GetService<Context>();
-
-        Application.EnableVisualStyles();
-
-        try
-        {
-            Log.Information("Application Starting");
-            if (context != null) Application.Run(context);
+            try
+            {
+                var context = ServiceProvider.GetService<Application>();
+                logger?.LogInformation("Application Starting");
+                
+                System.Windows.Forms.Application.EnableVisualStyles();
+                //System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
+                if (context != null)
+                {
+                    System.Windows.Forms.Application.Run(context);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "The Application failed to start");
+                throw;
+            }
         }
-        catch (Exception ex)
-        {
-            Log.Fatal(ex, "The Application failed to start");
-            throw;
-        }
-        finally
-        {
-            Log.CloseAndFlush();
-        }
-    }
 
-    private static void UnhandledException(object sender, UnhandledExceptionEventArgs e)
-    {
-        var ex = (Exception)e.ExceptionObject;
-        if (Logger != null)
+        private static void ConfigureServices()
         {
-            Logger.LogError(ex, ex.Message);
+            var services = new ServiceCollection();
+            
+            services.AddLogging(loggingBuilder =>
+            {
+                loggingBuilder.AddSerilog(new LoggerConfiguration()
+                    .ReadFrom.Configuration(Configuration)
+                    .CreateLogger());
+            });
+
+            services.AddSingleton(Configuration);
+
+            // Application
+            services.AddSingleton<BatteryService>();
+            services.AddSingleton<Application>();
+
+            ServiceProvider = services.BuildServiceProvider();
         }
-        else
+
+        private static void UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
+            var ex = (Exception)e.ExceptionObject;
+            
+            ILogger logger = null;
+            if (ServiceProvider != null)
+            {
+                var factory = ServiceProvider.GetService<ILoggerFactory>();
+                if (factory != null) logger = factory.CreateLogger(typeof(Program));
+
+                if (logger != null)
+                {
+                    logger.LogError(ex, ex.Message);
+                    return;
+                }
+            }
+            
             Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine(ex.Message);
             Console.ResetColor();
