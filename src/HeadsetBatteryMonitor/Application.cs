@@ -11,13 +11,14 @@ using HeadsetBatteryMonitor.Forms;
 using HeadsetBatteryMonitor.Models;
 using HeadsetBatteryMonitor.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Svg;
 using static System.Drawing.Icon;
 
 namespace HeadsetBatteryMonitor
 {
-    public class Context : ApplicationContext
+    public class Application : System.Windows.Forms.ApplicationContext
     {
         private const string MutexName = "HeadsetBatteryMonitor";
         private Mutex _mutexApplication;
@@ -27,14 +28,17 @@ namespace HeadsetBatteryMonitor
         private readonly BatteryService _batteryService;
         private readonly Device _device;
         private readonly ResourceManager _strings;
+        private readonly ILogger _logger;
 
-        public Context(BatteryService batteryService, IConfiguration configuration)
+        public Application(BatteryService batteryService, IConfiguration configuration, ILoggerFactory loggerFactory)
         {
             // Allow for multiple runs but only try and get the mutex once
             bool firstApplicationInstance;
             _mutexApplication = new Mutex(true, MutexName, out firstApplicationInstance);
 
             if (!firstApplicationInstance) ExitCommand(this, EventArgs.Empty);
+            
+            _logger = loggerFactory.CreateLogger(GetType());
 
             var appIcon = ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
             TrayIcon = new NotifyIcon() {Icon = appIcon, Visible = true, ContextMenuStrip = new ContextMenuStrip()};
@@ -50,8 +54,8 @@ namespace HeadsetBatteryMonitor
             configuration.Bind("Device", _device);
 
             _batteryService = batteryService;
-            Task.Run(() => { batteryService.StartAsync(_device); });
             batteryService.ValueChanged += BatteryServiceOnValueChanged;
+            Task.Run(() => { batteryService.StartAsync(_device); });
 
             var newVersion = new Task(CheckForUpdateAsync);
             newVersion.Start();
@@ -76,12 +80,14 @@ namespace HeadsetBatteryMonitor
         {
             string color;
             var value = _batteryService.Value;
+            
+            _logger.LogInformation($"{_device.Name} battery level {value}%");
 
-            if (value >= _device.Levels.High.Value || value == -2)
+            if (value > _device.Levels.High.Value || value == -2)
                 color = _device.Levels.High.Color;
-            else if (value >= _device.Levels.Normal.Value)
+            else if (value > _device.Levels.Normal.Value)
                 color = _device.Levels.Normal.Color;
-            else if ((value >= _device.Levels.Critical.Value && value <= _device.Levels.Low.Value) || value == -1)
+            else if ((value > _device.Levels.Critical.Value && value <= _device.Levels.Low.Value) || value == -1)
                 color = _device.Levels.Low.Color;
             else
                 color = _device.Levels.Critical.Color;
@@ -115,7 +121,7 @@ namespace HeadsetBatteryMonitor
         {
             TrayIcon.Visible = false;
             _mutexApplication.Dispose();
-            Application.Exit();
+            System.Windows.Forms.Application.Exit();
         }
 
         private void RegisterInStartupCommand(object sender, EventArgs e)
