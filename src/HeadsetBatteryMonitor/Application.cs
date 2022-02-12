@@ -87,7 +87,7 @@ namespace HeadsetBatteryMonitor
                 color = _device.Levels.High.Color;
             else if (value > _device.Levels.Normal.Value)
                 color = _device.Levels.Normal.Color;
-            else if ((value > _device.Levels.Critical.Value && value <= _device.Levels.Low.Value) || value == -1)
+            else if (value > _device.Levels.Low.Value)
                 color = _device.Levels.Low.Color;
             else
                 color = _device.Levels.Critical.Color;
