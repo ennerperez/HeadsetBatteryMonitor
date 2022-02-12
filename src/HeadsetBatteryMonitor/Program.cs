@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using HeadsetBatteryMonitor.Services;
 using Microsoft.Extensions.Configuration;
@@ -11,6 +11,9 @@ namespace HeadsetBatteryMonitor
 {
     public static class Program
     {
+
+        public static System.Threading.SynchronizationContext SynchronizationContext { get; private set; }
+
         public static IServiceProvider ServiceProvider { get; set; }
 
         public static IConfiguration Configuration { get; private set; }
@@ -22,7 +25,7 @@ namespace HeadsetBatteryMonitor
         private static void Main()
         {
             AppDomain.CurrentDomain.UnhandledException += UnhandledException;
-            
+
             var args = Environment.GetCommandLineArgs();
             var config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -35,7 +38,7 @@ namespace HeadsetBatteryMonitor
                 .Build();
 
             Configuration = config;
-            
+
             ConfigureServices();
 
             ILogger logger = null;
@@ -46,13 +49,14 @@ namespace HeadsetBatteryMonitor
             {
                 var context = ServiceProvider.GetService<Application>();
                 logger?.LogInformation("Application Starting");
-                
+
                 System.Windows.Forms.Application.EnableVisualStyles();
                 //System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
-                if (context != null)
-                {
-                    System.Windows.Forms.Application.Run(context);
-                }
+
+                if (context == null) return;
+
+                Program.SynchronizationContext = System.Threading.SynchronizationContext.Current;
+                System.Windows.Forms.Application.Run(context);
             }
             catch (Exception ex)
             {
@@ -64,7 +68,7 @@ namespace HeadsetBatteryMonitor
         private static void ConfigureServices()
         {
             var services = new ServiceCollection();
-            
+
             services.AddLogging(loggingBuilder =>
             {
                 loggingBuilder.AddSerilog(new LoggerConfiguration()
@@ -76,6 +80,7 @@ namespace HeadsetBatteryMonitor
 
             // Application
             services.AddSingleton<BatteryService>();
+            services.AddSingleton<NotificationService>();
             services.AddSingleton<Application>();
 
             ServiceProvider = services.BuildServiceProvider();
@@ -84,7 +89,7 @@ namespace HeadsetBatteryMonitor
         private static void UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             var ex = (Exception)e.ExceptionObject;
-            
+
             ILogger logger = null;
             if (ServiceProvider != null)
             {
@@ -97,7 +102,7 @@ namespace HeadsetBatteryMonitor
                     return;
                 }
             }
-            
+
             Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine(ex.Message);
             Console.ResetColor();

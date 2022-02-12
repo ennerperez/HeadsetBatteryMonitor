@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.7]
+### Added
+- Basic Toast Notifications
+### Fixed
+- Battery level settings
+
 ## [1.0.6]
 ### Fixed
 - Battery level settings

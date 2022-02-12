@@ -8,7 +8,7 @@ See the [changelog](CHANGELOG.md) for changes.
 ## Roadmap
 
 - [x] Icon monitor
-- [ ] Notifications
+- [x] Notifications
 - [ ] Custom settings
 - [ ] Headset catalogs
 

@@ -20,5 +20,16 @@
     {
         public decimal? Value { get; set; }
         public string Color { get; set; }
+        public Notification Notification { get; set; }
+
+    }
+
+    public class Notification
+    {
+        public bool Enabled { get; set; }
+        public int Timeout { get; set; }
+
+        public string Sound { get; set; }
     }
 }
+

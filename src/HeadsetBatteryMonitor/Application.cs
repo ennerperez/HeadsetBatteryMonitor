@@ -18,83 +18,23 @@ using static System.Drawing.Icon;
 
 namespace HeadsetBatteryMonitor
 {
-    public class Application : System.Windows.Forms.ApplicationContext
+    public class Application : ApplicationContext
     {
         private const string MutexName = "HeadsetBatteryMonitor";
-        private Mutex _mutexApplication;
+        private readonly Mutex _mutexApplication;
 
-        public NotifyIcon TrayIcon;
+        public NotifyIcon _trayIcon;
 
         private readonly BatteryService _batteryService;
+        private readonly NotificationService _notificationService;
+
         private readonly Device _device;
         private readonly ResourceManager _strings;
         private readonly ILogger _logger;
 
-        public Application(BatteryService batteryService, IConfiguration configuration, ILoggerFactory loggerFactory)
+        public static Bitmap GetColoredIcon(string color, int w = 192, int h = 192)
         {
-            // Allow for multiple runs but only try and get the mutex once
-            bool firstApplicationInstance;
-            _mutexApplication = new Mutex(true, MutexName, out firstApplicationInstance);
-
-            if (!firstApplicationInstance) ExitCommand(this, EventArgs.Empty);
-            
-            _logger = loggerFactory.CreateLogger(GetType());
-
-            var appIcon = ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
-            TrayIcon = new NotifyIcon() {Icon = appIcon, Visible = true, ContextMenuStrip = new ContextMenuStrip()};
-
-            _strings = Messages.ResourceManager;
-
-            TrayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("RunAtStart"), null, RegisterInStartupCommand) {CheckOnClick = true, Checked = RunInStartup});
-            TrayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("About"), null, AboutCommand));
-            TrayIcon.ContextMenuStrip.Items.Add(new ToolStripSeparator());
-            TrayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("Exit"), null, ExitCommand));
-
-            _device = new Device();
-            configuration.Bind("Device", _device);
-
-            _batteryService = batteryService;
-            batteryService.ValueChanged += BatteryServiceOnValueChanged;
-            Task.Run(() => { batteryService.StartAsync(_device); });
-
-            var newVersion = new Task(CheckForUpdateAsync);
-            newVersion.Start();
-        }
-
-        private async void CheckForUpdateAsync()
-        {
-#if DEBUG
-            await Task.Yield();
-#else
-            await GitHubInfo.CheckForUpdateAsync();
-#endif
-        }
-
-        private void AboutCommand(object sender, EventArgs e)
-        {
-            var form = new FormAbout() {StartPosition = FormStartPosition.CenterScreen};
-            form.ShowDialog();
-        }
-
-        private void BatteryServiceOnValueChanged(object sender, EventArgs e)
-        {
-            string color;
-            var value = _batteryService.Value;
-            
-            _logger.LogInformation($"{_device.Name} battery level {value}%");
-
-            if (value > _device.Levels.High.Value || value == -2)
-                color = _device.Levels.High.Color;
-            else if (value > _device.Levels.Normal.Value)
-                color = _device.Levels.Normal.Color;
-            else if (value > _device.Levels.Low.Value)
-                color = _device.Levels.Low.Color;
-            else
-                color = _device.Levels.Critical.Color;
-
-            uint dpiX, dpiY;
-            int w = 16, h = 16;
-            Screen.PrimaryScreen.GetDpi(DpiType.Angular, out dpiX, out dpiY);
+            Screen.PrimaryScreen.GetDpi(DpiType.Angular, out var dpiX, out var dpiY);
             if (dpiY != 96)
             {
                 w = (int)(16.0 * (1 + dpiX / 96.0));
@@ -108,18 +48,116 @@ namespace HeadsetBatteryMonitor
             var svgDocument = SvgDocument.Open(doc);
             svgDocument.Color = new SvgColourServer(ColorTranslator.FromHtml(color));
             var bitmap = svgDocument.Draw(w, h);
-            TrayIcon.Icon = FromHandle(bitmap.GetHicon());
+
+            return bitmap;
+        }
+
+        public Application(BatteryService batteryService, NotificationService notificationService, IConfiguration configuration, ILoggerFactory loggerFactory)
+        {
+            // Allow for multiple runs but only try and get the mutex once
+            _mutexApplication = new Mutex(true, MutexName, out var firstApplicationInstance);
+
+            if (!firstApplicationInstance) ExitCommand(this, EventArgs.Empty);
+
+            _logger = loggerFactory.CreateLogger(GetType());
+
+            var appIcon = ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
+            _trayIcon = new NotifyIcon() { Icon = appIcon, Visible = true, ContextMenuStrip = new ContextMenuStrip() };
+
+            _strings = Messages.ResourceManager;
+
+            _trayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("RunAtStart"), null, RegisterInStartupCommand) { CheckOnClick = true, Checked = RunInStartup });
+            _trayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("About"), null, AboutCommand));
+            _trayIcon.ContextMenuStrip.Items.Add(new ToolStripSeparator());
+            _trayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("Exit"), null, ExitCommand));
+
+            _device = new Device();
+            configuration.Bind("Device", _device);
+
+            _batteryService = batteryService;
+            _notificationService = notificationService;
+            batteryService.ValueChanged += BatteryServiceOnValueChanged;
+            Task.Run(() => { batteryService.StartAsync(_device); });
+
+            var newVersion = new Task(CheckForUpdateAsync);
+            newVersion.Start();
+
+        }
+
+        private static async void CheckForUpdateAsync()
+        {
+#if DEBUG
+            await Task.Yield();
+#else
+            await GitHubInfo.CheckForUpdateAsync();
+#endif
+        }
+
+        private static void AboutCommand(object sender, EventArgs e)
+        {
+            var form = new FormAbout() { StartPosition = FormStartPosition.CenterScreen };
+            form.ShowDialog();
+        }
+
+        private void BatteryServiceOnValueChanged(object sender, EventArgs e)
+        {
+            var value = _batteryService.Value;
+            var currentLevel = _device.Levels.High;
+
+            switch (value)
+            {
+                case >= 0 when value <= _device.Levels.Critical.Value:
+                    currentLevel = _device.Levels.Critical;
+                    break;
+                case >= 0 when value <= _device.Levels.Low.Value:
+                    currentLevel = _device.Levels.Low;
+                    break;
+                case >= 0 when value <= _device.Levels.Normal.Value:
+                    currentLevel = _device.Levels.Normal;
+                    break;
+                case >= 0:
+                case -2:
+                    currentLevel = _device.Levels.High;
+                    break;
+            }
+
+            var color = currentLevel.Color;
+            var notification = currentLevel.Notification?.Enabled;
+            var timeout = currentLevel.Notification?.Timeout;
+            var sound = currentLevel.Notification?.Sound;
+
+            var bitmap = GetColoredIcon(color, 16, 16);
+            _trayIcon.Icon = FromHandle(bitmap.GetHicon());
 
             var text = $"{_device.Name} {value}%";
-            if (value == -1) text = $"{_device.Name} ({_strings.GetString("Offline")})";
-            else if (value == -2) text = $"{_device.Name} ({_strings.GetString("Charging")})";
+            var content = $"{_device.Name} battery level {value}%";
+            switch (value)
+            {
+                case -1:
+                    text = $"{_device.Name} ({_strings.GetString("Offline")})";
+                    content = text;
+                    break;
+                case -2:
+                    text = $"{_device.Name} ({_strings.GetString("Charging")})";
+                    content = text;
+                    break;
+            }
 
-            TrayIcon.Text = text;
+            if (notification is true)
+            {
+                Program.SynchronizationContext.Post((_) =>
+                {
+                    _notificationService.ShowNotification<FormToast>(text, content, (int)timeout, color, sound);
+                }, null);
+            }
+
+            _trayIcon.Text = text;
+            _logger.LogInformation(content);
         }
 
         private void ExitCommand(object sender, EventArgs e)
         {
-            TrayIcon.Visible = false;
+            _trayIcon.Visible = false;
             _mutexApplication.Dispose();
             System.Windows.Forms.Application.Exit();
         }
@@ -129,22 +167,22 @@ namespace HeadsetBatteryMonitor
             RunInStartup = ((sender as ToolStripMenuItem)!).Checked;
         }
 
-        private RegistryKey startUpRegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+        private readonly RegistryKey _startUpRegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
 
         public bool RunInStartup
         {
-            get => startUpRegistryKey?.GetValue(Assembly.GetExecutingAssembly().GetName().Name) != null;
+            get => _startUpRegistryKey?.GetValue(Assembly.GetExecutingAssembly().GetName().Name) != null;
             set
             {
                 var name = Assembly.GetExecutingAssembly().GetName().Name;
                 if (value)
                 {
                     var mainModuleFileName = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
-                    if (mainModuleFileName != null) startUpRegistryKey?.SetValue(name, mainModuleFileName);
+                    if (mainModuleFileName != null) _startUpRegistryKey?.SetValue(name, mainModuleFileName);
                 }
                 else
                 {
-                    if (name != null) startUpRegistryKey?.DeleteValue(name);
+                    if (name != null) _startUpRegistryKey?.DeleteValue(name);
                 }
             }
         }
