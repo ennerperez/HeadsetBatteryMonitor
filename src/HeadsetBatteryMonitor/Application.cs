@@ -26,6 +26,7 @@ namespace HeadsetBatteryMonitor
         public NotifyIcon _trayIcon;
 
         private readonly BatteryService _batteryService;
+        private readonly NotificationService _notificationService;
 
         private readonly Device _device;
         private readonly ResourceManager _strings;
@@ -51,7 +52,7 @@ namespace HeadsetBatteryMonitor
             return bitmap;
         }
 
-        public Application(BatteryService batteryService, IConfiguration configuration, ILoggerFactory loggerFactory)
+        public Application(BatteryService batteryService, NotificationService notificationService, IConfiguration configuration, ILoggerFactory loggerFactory)
         {
             // Allow for multiple runs but only try and get the mutex once
             _mutexApplication = new Mutex(true, MutexName, out var firstApplicationInstance);
@@ -74,6 +75,7 @@ namespace HeadsetBatteryMonitor
             configuration.Bind("Device", _device);
 
             _batteryService = batteryService;
+            _notificationService = notificationService;
             batteryService.ValueChanged += BatteryServiceOnValueChanged;
             Task.Run(() => { batteryService.StartAsync(_device); });
 
@@ -141,6 +143,13 @@ namespace HeadsetBatteryMonitor
                     break;
             }
 
+            if (notification is true)
+            {
+                Program.SynchronizationContext.Post((_) =>
+                {
+                    _notificationService.ShowNotification<FormToast>(text, content, (int)timeout, color, sound);
+                }, null);
+            }
 
             _trayIcon.Text = text;
             _logger.LogInformation(content);

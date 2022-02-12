@@ -11,6 +11,9 @@ namespace HeadsetBatteryMonitor
 {
     public static class Program
     {
+
+        public static System.Threading.SynchronizationContext SynchronizationContext { get; private set; }
+
         public static IServiceProvider ServiceProvider { get; set; }
 
         public static IConfiguration Configuration { get; private set; }
@@ -52,6 +55,7 @@ namespace HeadsetBatteryMonitor
 
                 if (context == null) return;
 
+                Program.SynchronizationContext = System.Threading.SynchronizationContext.Current;
                 System.Windows.Forms.Application.Run(context);
             }
             catch (Exception ex)
@@ -76,6 +80,7 @@ namespace HeadsetBatteryMonitor
 
             // Application
             services.AddSingleton<BatteryService>();
+            services.AddSingleton<NotificationService>();
             services.AddSingleton<Application>();
 
             ServiceProvider = services.BuildServiceProvider();
