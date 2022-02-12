@@ -23,8 +23,8 @@ namespace HeadsetBatteryMonitor.Services
 
         public bool Debug { get; private set; }
 
-        private const int VoidBatteryMicup = 128;
-        private static byte[] _dataReq = {0xC9, 0x64};
+        private const int VoidBatteryMicUp = 128;
+        private static readonly byte[] s_dataReq = { 0xC9, 0x64 };
 
         public Device Device { get; private set; }
         public int Pid => int.Parse(Device?.ProductId ?? "0", NumberStyles.HexNumber);
@@ -68,7 +68,7 @@ namespace HeadsetBatteryMonitor.Services
                     _devPtr = (IntPtr)field?.GetValue(_device)!;
 
                     var buffer = new byte[5];
-                    HidApi.hid_write(_devPtr, _dataReq, Convert.ToUInt32(_dataReq.Length));
+                    HidApi.hid_write(_devPtr, s_dataReq, Convert.ToUInt32(s_dataReq.Length));
                     HidApi.hid_read_timeout(_devPtr, buffer, Convert.ToUInt32(buffer.Length), 1000);
                     _device.Disconnect();
                     Thread.Sleep(250);
@@ -96,9 +96,9 @@ namespace HeadsetBatteryMonitor.Services
                 }
 
                 // MicUp
-                if (data[2] > VoidBatteryMicup)
+                if (data[2] > VoidBatteryMicUp)
                 {
-                    Value = (data[2] - VoidBatteryMicup);
+                    Value = (data[2] - VoidBatteryMicUp);
                     return;
                 }
 
