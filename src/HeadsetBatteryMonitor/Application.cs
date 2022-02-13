@@ -99,11 +99,13 @@ namespace HeadsetBatteryMonitor
             form.ShowDialog();
         }
 
+        private Level _lastLevel;
+        
         private void BatteryServiceOnValueChanged(object sender, EventArgs e)
         {
             var value = _batteryService.Value;
             var currentLevel = _device.Levels.High;
-
+            
             switch (value)
             {
                 case >= 0 when value <= _device.Levels.Critical.Value:
@@ -143,12 +145,14 @@ namespace HeadsetBatteryMonitor
                     break;
             }
 
-            if (notification is true)
+            
+            if (notification is true && _lastLevel != currentLevel)
             {
                 Program.SynchronizationContext.Post((_) =>
                 {
                     _notificationService.ShowNotification<FormToast>(text, content, (int)timeout, color, sound);
                 }, null);
+                _lastLevel = currentLevel;
             }
 
             _trayIcon.Text = text;
