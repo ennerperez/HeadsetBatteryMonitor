@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.9]
+### Fixed
+- Notification simplification
+- General optimizations
+- Application name
+- Shutdown detection
+
 ## [1.1.8]
 ### Fixed
 - Notification level fix
