@@ -80,7 +80,6 @@ namespace HeadsetBatteryMonitor
 
             // Application
             services.AddSingleton<BatteryService>();
-            services.AddSingleton<NotificationService>();
             services.AddSingleton<Application>();
 
             ServiceProvider = services.BuildServiceProvider();

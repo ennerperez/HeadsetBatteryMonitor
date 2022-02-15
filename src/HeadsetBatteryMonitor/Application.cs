@@ -26,7 +26,6 @@ namespace HeadsetBatteryMonitor
         public NotifyIcon _trayIcon;
 
         private readonly BatteryService _batteryService;
-        private readonly NotificationService _notificationService;
 
         private readonly Device _device;
         private readonly ResourceManager _strings;
@@ -52,7 +51,7 @@ namespace HeadsetBatteryMonitor
             return bitmap;
         }
 
-        public Application(BatteryService batteryService, NotificationService notificationService, IConfiguration configuration, ILoggerFactory loggerFactory)
+        public Application(BatteryService batteryService, IConfiguration configuration, ILoggerFactory loggerFactory)
         {
             // Allow for multiple runs but only try and get the mutex once
             _mutexApplication = new Mutex(true, MutexName, out var firstApplicationInstance);
@@ -62,11 +61,11 @@ namespace HeadsetBatteryMonitor
             _logger = loggerFactory.CreateLogger(GetType());
 
             var appIcon = ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
-            _trayIcon = new NotifyIcon() { Icon = appIcon, Visible = true, ContextMenuStrip = new ContextMenuStrip() };
+            _trayIcon = new NotifyIcon() {Icon = appIcon, Visible = true, ContextMenuStrip = new ContextMenuStrip()};
 
             _strings = Messages.ResourceManager;
 
-            _trayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("RunAtStart"), null, RegisterInStartupCommand) { CheckOnClick = true, Checked = RunInStartup });
+            _trayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("RunAtStart"), null, RegisterInStartupCommand) {CheckOnClick = true, Checked = RunInStartup});
             _trayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("About"), null, AboutCommand));
             _trayIcon.ContextMenuStrip.Items.Add(new ToolStripSeparator());
             _trayIcon.ContextMenuStrip.Items.Add(new ToolStripMenuItem(_strings.GetString("Exit"), null, ExitCommand));
@@ -75,13 +74,11 @@ namespace HeadsetBatteryMonitor
             configuration.Bind("Device", _device);
 
             _batteryService = batteryService;
-            _notificationService = notificationService;
             batteryService.ValueChanged += BatteryServiceOnValueChanged;
             Task.Run(() => { batteryService.StartAsync(_device); });
 
             var newVersion = new Task(CheckForUpdateAsync);
             newVersion.Start();
-
         }
 
         private static async void CheckForUpdateAsync()
@@ -95,68 +92,69 @@ namespace HeadsetBatteryMonitor
 
         private static void AboutCommand(object sender, EventArgs e)
         {
-            var form = new FormAbout() { StartPosition = FormStartPosition.CenterScreen };
+            var form = new FormAbout() {StartPosition = FormStartPosition.CenterScreen};
             form.ShowDialog();
         }
 
         private Level _lastLevel;
-        
+
         private void BatteryServiceOnValueChanged(object sender, EventArgs e)
         {
             var value = _batteryService.Value;
-            var currentLevel = _device.Levels.High;
-            
+            var currentLevel = _device.Levels["High"];
+            var icon = ToolTipIcon.None;
+
             switch (value)
             {
-                case >= 0 when value <= _device.Levels.Critical.Value:
-                    currentLevel = _device.Levels.Critical;
+                case -1:
+                case >= 0 when value <= _device.Levels["Critical"]?.Value:
+                    currentLevel = _device.Levels["Critical"];
                     break;
-                case >= 0 when value <= _device.Levels.Low.Value:
-                    currentLevel = _device.Levels.Low;
+                case >= 0 when value <= _device.Levels["Low"]?.Value:
+                    currentLevel = _device.Levels["Low"];
                     break;
-                case >= 0 when value <= _device.Levels.Normal.Value:
-                    currentLevel = _device.Levels.Normal;
+                case >= 0 when value <= _device.Levels["Normal"]?.Value:
+                    currentLevel = _device.Levels["Normal"];
                     break;
                 case >= 0:
                 case -2:
-                    currentLevel = _device.Levels.High;
+                    currentLevel = _device.Levels["High"];
                     break;
             }
 
             var color = currentLevel.Color;
             var notification = currentLevel.Notification?.Enabled;
             var timeout = currentLevel.Notification?.Timeout;
-            var sound = currentLevel.Notification?.Sound;
 
             var bitmap = GetColoredIcon(color, 16, 16);
             _trayIcon.Icon = FromHandle(bitmap.GetHicon());
 
-            var text = $"{_device.Name} {value}%";
-            var content = $"{_device.Name} battery level {value}%";
+            var text = $"{_device.Name}";
+            var content = $"Battery level {value}%";
             switch (value)
             {
                 case -1:
-                    text = $"{_device.Name} ({_strings.GetString("Offline")})";
-                    content = text;
+                    content = $"{_strings.GetString("Offline")}";
                     break;
                 case -2:
-                    text = $"{_device.Name} ({_strings.GetString("Charging")})";
-                    content = text;
+                    content = $"{_strings.GetString("Charging")}";
                     break;
             }
 
-            
-            if (notification is true && _lastLevel != currentLevel)
+            if (value > 0  && notification is true && _lastLevel != currentLevel)
             {
                 Program.SynchronizationContext.Post((_) =>
                 {
-                    _notificationService.ShowNotification<FormToast>(text, content, (int)timeout, color, sound);
+                    _trayIcon.BalloonTipText = content;
+                    _trayIcon.BalloonTipTitle = text;
+                    _trayIcon.BalloonTipIcon = icon;
+                    _trayIcon.ShowBalloonTip((int)timeout > 0 ? (int)timeout : int.MaxValue);
                 }, null);
                 _lastLevel = currentLevel;
             }
 
-            _trayIcon.Text = text;
-            _logger.LogInformation(content);
+            _trayIcon.Text = value > 0 ? $@"{text} {value}%" : $@"{text} ({content})";
+            _logger.LogInformation(_trayIcon.Text);
         }
 
         private void ExitCommand(object sender, EventArgs e)
