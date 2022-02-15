@@ -23,8 +23,8 @@ namespace HeadsetBatteryMonitor.Services
 
         public bool Debug { get; private set; }
 
-        private const int VoidBatteryMicUp = 128;
-        private static readonly byte[] s_dataReq = { 0xC9, 0x64 };
+        private const decimal VoidBatteryMicUp = 128;
+        private static readonly byte[] s_dataReq = {0xC9, 0x64};
 
         public Device Device { get; private set; }
         public int Pid => int.Parse(Device?.ProductId ?? "0", NumberStyles.HexNumber);
@@ -87,8 +87,17 @@ namespace HeadsetBatteryMonitor.Services
             if (Debug) _logger.LogDebug($"Battery report: {string.Join(", ", data)}");
             try
             {
+                
+                // Offline
+                if (data[4] == 0)
+                {
+                    Value = -1;
+                    this.LastValues = new int?[FilterLength];
+                    return;
+                }
+                
                 // Charging
-                if (data[4] == 0 || data[4] == 4 || data[4] == 5)
+                if (data[4] == 4 || data[4] == 5)
                 {
                     Value = -2;
                     this.LastValues = new int?[FilterLength];
@@ -135,7 +144,9 @@ namespace HeadsetBatteryMonitor.Services
             get => _value;
             set
             {
+#if !DEBUG
                 if (_value != value)
+#endif
                 {
                     _value = value;
                     ValueChanged?.Invoke(this, new EventArgs());
